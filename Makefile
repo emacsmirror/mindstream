@@ -75,8 +75,14 @@ build-docs:
 build-pdf-docs:
 	scribble --pdf --prefix $(DOCS-PATH)/pdf-style-prefix.tex --dest $(DOCS-PATH)/output $(DOCS-PATH)/mindstream.scrbl
 
+build-design:
+	scribble ++style $(DOCS-PATH)/assets/css/$(PACKAGE-NAME).css --html --dest $(DOCS-PATH)/design-output --dest-name index $(DOCS-PATH)/design.scrbl
+
 docs: build-docs
 	open $(DOCS-PATH)/output/index.html
+
+design: build-design
+	open $(DOCS-PATH)/design-output/index.html
 
 check-docs-deps:
 	raco setup --no-docs $(DEPS-FLAGS) --pkgs $(PACKAGE-NAME)
