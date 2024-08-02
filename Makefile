@@ -30,6 +30,8 @@ help:
 	@echo "build-pdf-docs - view documentation in a browser"
 	@echo "docs - view documentation in a browser"
 	@echo "check-docs-deps - view documentation in a browser"
+	@echo "build-design - Build self-contained documentation for the new design that could be hosted somewhere"
+	@echo "design - view the new design document in a browser"
 	@echo
 	@echo "**All of these actions (aside from docs) take effect and are contained inside the elci/ folder --- they do not affect the system Emacs configuration.**"
 
@@ -87,4 +89,4 @@ design: build-design
 check-docs-deps:
 	raco setup --no-docs $(DEPS-FLAGS) --pkgs $(PACKAGE-NAME)
 
-.PHONY: help setup-ci clean bootstrap install byte-compile native-compile lint checkdoc install-docs remove-docs build-docs build-pdf-docs docs check-docs-deps
+.PHONY: help setup-ci clean bootstrap install byte-compile native-compile lint checkdoc install-docs remove-docs build-docs build-pdf-docs docs check-docs-deps build-design design
