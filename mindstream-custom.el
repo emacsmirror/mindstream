@@ -113,14 +113,6 @@ for the major mode so that it would be selected."
   :type 'string
   :group 'mindstream)
 
-(defcustom mindstream-anonymous-session-name "main"
-  "The name to use for the Git branch in an anonymous mindstream session.
-
-Like all Mindstream sessions, this name will be prefixed with
-`mindstream-branch-prefix'."
-  :type 'string
-  :group 'mindstream)
-
 (defcustom mindstream-branch-prefix "mindstream"
   "The prefix to use in the name of a mindstream branch."
   :type 'string

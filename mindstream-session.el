@@ -36,6 +36,7 @@
 
 (require 'mindstream-custom)
 (require 'mindstream-backend)
+(require 'mindstream-stream)
 (require 'mindstream-util)
 
 (defvar mindstream-session-file-history nil)
@@ -82,7 +83,7 @@ For instance, add the session to completion history."
 
 (defun mindstream--begin-session ()
   "Begin session."
-  (mindstream-create-branch)
+  (mindstream-start-stream)
   ;; this may be OK as is, for now.
   ;; used in archive and load
   (mindstream--begin-session-helper))
@@ -90,7 +91,7 @@ For instance, add the session to completion history."
 (defun mindstream-begin-session ()
   "Begin a session at the current path."
   (interactive)
-  (if (mindstream-session-p)
+  (if (mindstream-stream-p)
       (when (y-or-n-p "Already in a mindstream session. Want to start a new one here?")
         (mindstream--begin-session))
     (mindstream--begin-session)))
@@ -102,11 +103,6 @@ That is, either the anonymous session path or the archive path."
   (let ((path (or path default-directory)))
     (or (mindstream-anonymous-session-p path)
         (mindstream-archived-session-p path))))
-
-(defun mindstream-session-p (&optional buffer)
-  "Predicate to check whether BUFFER is in an active session."
-  (string-prefix-p mindstream-branch-prefix
-                   (mindstream-branch-name buffer)))
 
 (defun mindstream--session-name ()
   "Name of the current session.

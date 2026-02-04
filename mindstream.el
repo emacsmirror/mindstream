@@ -42,6 +42,7 @@
 (require 'dired)
 
 (require 'mindstream-custom)
+(require 'mindstream-stream)
 (require 'mindstream-session)
 (require 'mindstream-backend)
 (require 'mindstream-util)
@@ -144,21 +145,7 @@ New sessions always start anonymous."
       (mindstream--initialize-buffer)
       ;; (ab initio) iterate
       (mindstream--iterate)
-      ;; An initial commit must exist before Git
-      ;; considers a branch to exist (at least on older
-      ;; versions of Git). Now that we have one, we rename
-      ;; the branch to have the Mindstream session prefix,
-      ;; so that it's implicitly versioned by Mindstream
-      (mindstream-backend-rename-branch mindstream-anonymous-session-name)
-      ;; Under typical circumstances, "begin session"
-      ;; creates a branch with a random name. But in
-      ;; the special case of starting a new anonymous
-      ;; session, we want to use a recognizable name.
-      ;; As we have already done that by renaming the
-      ;; branch (above), we have already "begun the session,"
-      ;; and just need to do the bookkeeping for completion
-      ;; history and so on by invoking this "helper."
-      (mindstream--begin-session-helper)
+      (mindstream-begin-session)
       (current-buffer))))
 
 (defun mindstream-initialize ()
@@ -194,7 +181,7 @@ for session iteration."
 
 (defun mindstream--call-live-action ()
   "Call configured live action for major mode."
-  (when (and (mindstream-session-p)
+  (when (and (mindstream-stream-p)
              (boundp 'mindstream-live-timer)
              mindstream-live-timer)
     (let ((action (plist-get mindstream-live-action
@@ -218,7 +205,7 @@ for session iteration."
 
 (defun mindstream--reset-live-timer (_beg _end _len)
   "Reset the live timer."
-  (when (mindstream-session-p)
+  (when (mindstream-stream-p)
     (mindstream--cancel-live-timer)
     (mindstream--start-live-timer)))
 
@@ -249,7 +236,7 @@ before invoking it is customized via `mindstream-live-delay'."
 
 This only iterates the session if there have been changes since
 the last persistent state.  Otherwise, it takes no action."
-  (when (mindstream-session-p)
+  (when (mindstream-stream-p)
     (mindstream--iterate)))
 
 (defun mindstream-save-session (dest-dir)
@@ -293,13 +280,7 @@ to select the existing destination path."
         (file-to-open (file-name-nondirectory
                        (buffer-file-name))))
     ;; TODO: verify behavior with existing vs non-existent containing folder
-    (mindstream--move-dir source-dir dest-dir)
-    ;; TODO: this is a no-op, and it currently leaves the
-    ;; session in `mindsteam-active-sessions'. But that's OK
-    ;; for now as it doesn't affect anything, and this "state"
-    ;; will be removed eventually anyway in the design refactor
-    ;; (mindstream--end-anonymous-session)
-    (mindstream-load-session dest-dir file-to-open)))
+    (mindstream--move-dir source-dir dest-dir)))
 
 (defun mindstream-load-session (dir &optional file)
   "Load a previously saved session.
@@ -313,8 +294,7 @@ the file to be opened."
   ;; TODO: this should just be ordinary switch branch now
   (let ((file (or file
                   (mindstream--starting-file-for-session dir))))
-    (find-file (expand-file-name file dir))
-    (mindstream-begin-session)))
+    (find-file (expand-file-name file dir))))
 
 (defun mindstream--completing-read-session ()
   "Return session-file via completion for template."
@@ -419,9 +399,11 @@ present, otherwise, it creates a new one and enters it."
                sessions))))
     (let ((sessions (sort (seq-uniq sessions)
                           #'mindstream--files-sort-by-modified-time)))
-      (when (mindstream-session-p)
+      (when (mindstream-stream-p)
         ;; ensure the session in the current buffer
         ;; is at the top of the completion menu
+        ;; ideally, this shouldn't be necessary if sorting
+        ;; by recency works as expected.
         (let ((this-session (mindstream--session-dir)))
           (setq sessions
                 (cons this-session

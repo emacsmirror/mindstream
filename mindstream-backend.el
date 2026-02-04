@@ -91,7 +91,7 @@ and arguments that are to be supplied to the command."
       ;; to implement this using git directly.
       (magit-toplevel))))
 
-(defun mindstream-branch-name (&optional buffer)
+(defun mindstream-git-branch-name (&optional buffer)
   "Get the Git branch name for BUFFER."
   (let ((buffer (or buffer (current-buffer))))
     (with-current-buffer buffer
@@ -103,7 +103,7 @@ and arguments that are to be supplied to the command."
     (with-current-buffer buffer
       (magit-rev-parse "HEAD"))))
 
-(defun mindstream-create-branch (&optional name)
+(defun mindstream-create-git-branch (&optional name)
   "Start a new branch (stream) in the current repo.
 
 Note that this prefixes NAME with `mindstream-branch-prefix' before
