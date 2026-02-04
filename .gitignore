@@ -6,6 +6,8 @@
 .cask
 *.elc
 *.html
+*.css
+*.js
 dist
 .elci
 
