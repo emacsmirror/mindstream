@@ -290,10 +290,15 @@ protocol for selecting a file, including, if necessary, prompting for
 the file to be opened."
   (interactive (list
                 (mindstream--completing-read-session)))
-  ;; TODO: this should just be ordinary switch branch now
   (let ((file (or file
                   (mindstream--starting-file-for-session dir))))
-    (find-file (expand-file-name file dir))))
+    (find-file (expand-file-name file dir))
+    (if (mindstream-stream-p)
+        ;; if already in a stream (i.e., currently on a mindstream
+        ;; branch), we don't need to do anything, but we do still call
+        ;; the "helper" here to add the session to completion history
+        (mindstream--start-stream-helper)
+      (mindstream--start-stream))))
 
 (defun mindstream--completing-read-session ()
   "Return session-file via completion for template."

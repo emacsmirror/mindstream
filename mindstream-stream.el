@@ -52,7 +52,7 @@ For instance, add the session to completion history."
 
 (defun mindstream--start-stream ()
   "Start stream."
-  (mindstream-create-git-branch name)
+  (mindstream-create-git-branch)
   ;; this may be OK as is, for now.
   ;; used in archive and load
   (mindstream--start-stream-helper))
