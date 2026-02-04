@@ -41,9 +41,33 @@
   (string-prefix-p mindstream-branch-prefix
                    (mindstream-git-branch-name buffer)))
 
-(defun mindstream-start-stream (&optional name)
-  "Start a new stream."
-  (mindstream-create-git-branch name))
+(defun mindstream--start-stream-helper ()
+  "Do any necessary bookkeeping after starting a stream.
+
+For instance, add the session to completion history."
+  (add-to-list 'mindstream-session-history
+               (mindstream--session-file-name-relative default-directory
+                                                       mindstream-save-session-path))
+  (message "Session started at %s." default-directory))
+
+(defun mindstream--start-stream ()
+  "Start stream."
+  (mindstream-create-git-branch name)
+  ;; this may be OK as is, for now.
+  ;; used in archive and load
+  (mindstream--start-stream-helper))
+
+(defun mindstream-start-stream ()
+  "Start a new stream in the current repo.
+
+A stream is an ordinary git branch with moment-to-moment commit
+semantics. Any branch whose name starts with
+`mindstream-branch-prefix' will be versioned this way."
+  (interactive)
+  (if (mindstream-stream-p)
+      (when (y-or-n-p "Already in a mindstream session. Want to start a new one here?")
+        (mindstream--start-stream))
+    (mindstream--start-stream)))
 
 (provide 'mindstream-stream)
 ;;; mindstream-stream.el ends here
