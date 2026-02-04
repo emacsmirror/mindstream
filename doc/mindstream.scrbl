@@ -122,15 +122,21 @@ Go offline with @keybinding{M-x mindstream-go-offline} (default: @keybinding{C-c
 
 @subsection{Mindstream Anywhere}
 
+@subsubsection{Existing Projects}
+
+Mindstream sessions are just ordinary Git repositories. You can use Mindstream in any existing Git repo simply by @keybinding{M-x mindstream-start-stream} after opening a file in the repo.
+
+This will start a new branch with a randomly-generated name beginning with @variable{mindstream-branch-prefix}, which ensures that it will have moment-to-moment versioning. When you are done, you can merge this branch into your development branch using standard Git tools such as Magit --- you will likely want to @emph{squash merge} the branch to have just one representative commit.
+
+@subsubsection{Existing Files and Directories}
+
 If you have an existing, ordinary file or directory that you were working on at some point, and if you want to continue working on it in a mindstream session, that's easy enough to do. Simply follow these steps:
 
 @itemlist[#:style 'ordered
   @item{Create a new folder (give it a representative name, as you would any Mindstream session) and move the file(s) into it.}
   @item{At the command line in that folder, run @code{git init}.}
-  @item{Open the file in Emacs in the usual way and @keybinding{M-x mindstream-begin-session}.}
+  @item{Open the file in Emacs in the usual way and @keybinding{M-x mindstream-start-stream}.}
 ]
-
-Mindstream sessions are just ordinary Git repositories. If you wanted to, you could use Mindstream in any Git repo simply by @keybinding{M-x mindstream-begin-session} after opening a file in the repo, but this isn't a well-supported use case for the moment (e.g. it would result in a lot of commits, and you would most likely want to manually squash them). For now, if you are interested in mindstreaming an existing repo, try out @hyperlink["https://github.com/countvajhula/mindstream/issues/9#issuecomment-2101439864"]{this workflow by Noboru Ota}.
 
 @subsection{Explore}
 
