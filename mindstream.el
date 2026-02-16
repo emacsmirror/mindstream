@@ -394,20 +394,18 @@ present, otherwise, it creates a new one and enters it."
     major-mode)))
 
 (defun mindstream--list-anonymous-sessions ()
-  "List anonymous session paths."
+  "List anonymous session paths, ordered by recency of buffer use."
   (let ((sessions nil))
     (mindstream--for-all-buffers
      (lambda ()
        (when (mindstream-anonymous-session-p)
          (push (mindstream--session-dir (current-buffer))
                sessions))))
-    (let ((sessions (sort (seq-uniq sessions)
-                          #'mindstream--files-sort-by-modified-time)))
+    ;; `buffer-list` is already sorted most-recently-used first.
+    ;; `push` reverses this, so `nreverse` restores the true MRU order.
+    ;; `seq-uniq` keeps the first occurrence, maintaining recency priority.
+    (let ((sessions (seq-uniq (nreverse sessions))))
       (when (mindstream-stream-p)
-        ;; ensure the session in the current buffer
-        ;; is at the top of the completion menu
-        ;; ideally, this shouldn't be necessary if sorting
-        ;; by recency works as expected.
         (let ((this-session (mindstream--session-dir)))
           (setq sessions
                 (cons this-session
@@ -435,18 +433,24 @@ present, otherwise, it creates a new one and enters it."
     (when (mindstream--directory-empty-p anon-date-dir)
       (delete-directory anon-date-dir))))
 
-;; TODO: archive should be ordered by recency, so that the current session is highlighted.
 (defun mindstream-archive (session)
   "Move the selected SESSION to `mindstream-archive-path'.
 
 The session is expected to be anonymous - it does not make sense to
 archive saved sessions."
-  (interactive (list (completing-read "Which session? "
-                                      (mindstream--list-anonymous-sessions)
-                                      nil
-                                      t
-                                      nil
-                                      'mindstream-session-history)))
+  (interactive
+   (let* ((sessions (mindstream--list-anonymous-sessions))
+          ;; Grab the first item (current or most recent) to use as default
+          (default (car sessions)))
+     (list (completing-read (if default
+                                (format "Which session? (default %s): " default)
+                              "Which session? ")
+                            sessions
+                            nil
+                            t
+                            nil
+                            'mindstream-session-history
+                            default))))
   (let ((template (mindstream--template-used session)))
     (mindstream--archive session
                          template)))
