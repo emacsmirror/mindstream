@@ -150,7 +150,7 @@ template contents."
   :type 'string
   :group 'mindstream)
 
-(defcustom mindstream-default-template-contents "The past is a memory, the future a dream. Now, we write.\n"
+(defcustom mindstream-default-template-contents "The past is a memory, the future a dream. Now, write!\n"
   "Contents of the default template that is created if none exist."
   :type 'string
   :group 'mindstream)
