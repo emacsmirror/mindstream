@@ -36,6 +36,7 @@
 
 (require 'mindstream-custom)
 (require 'magit-git)
+(require 'magit-branch)
 
 ;; collisions unlikely within a single project repo
 ;; and we don't want branch names to be too long as they
@@ -108,13 +109,13 @@ and arguments that are to be supplied to the command."
 
 Note that this prefixes NAME with `mindstream-branch-prefix' before
 creating the branch."
-  (magit-branch-and-checkout
-   (concat mindstream-branch-prefix
-           "-"
-           (or name
-               (mindstream--unique-name mindstream-branch-name-length)))
-   (mindstream--current-version)
-   nil))
+  (let ((branch-name (concat mindstream-branch-prefix
+                             "-"
+                             (or name
+                                 (mindstream--unique-name mindstream-branch-name-length))))
+        (start-point (mindstream--current-version)))
+    (mindstream--execute-shell-command
+     (list "git" "checkout" "-b" branch-name start-point))))
 
 (defun mindstream-backend-rename-branch (new-name)
   "Rename the current branch to NEW-NAME.

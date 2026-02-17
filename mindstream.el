@@ -38,9 +38,6 @@
 
 ;;; Code:
 
-(require 'magit-git)
-(require 'dired)
-
 (require 'mindstream-custom)
 (require 'mindstream-stream)
 (require 'mindstream-session)
@@ -144,7 +141,7 @@ New sessions always start anonymous."
       (mindstream--initialize-buffer)
       ;; (ab initio) iterate
       (mindstream--iterate)
-      (mindstream-begin-session)
+      (mindstream-start-stream)
       (current-buffer))))
 
 (defun mindstream-initialize ()
@@ -180,7 +177,7 @@ should trigger session iteration (and remove `after-save-hook')."
   "Cleanup actions on exiting `mindstream-mode'.
 
 This unsubscribes from any hooks (e.g. `after-save-hook') for session
-iteration. It also removes advice (deprecated), if present."
+iteration.  It also removes advice (deprecated), if present."
   (dolist (trigger mindstream-triggers)
     (if (mindstream--is-hook-p trigger)
         (remove-hook trigger #'mindstream-implicitly-iterate)
@@ -296,9 +293,7 @@ to select the existing destination path."
                       ;; not named - retain anonymous session name
                       (mindstream--build-path dest-dir
                                               (mindstream--session-name))
-                    dest-dir))
-        (file-to-open (file-name-nondirectory
-                       (buffer-file-name))))
+                    dest-dir)))
     ;; TODO: verify behavior with existing vs non-existent containing folder
     (mindstream--move-dir source-dir dest-dir)))
 

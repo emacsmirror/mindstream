@@ -82,7 +82,7 @@
 (defcustom mindstream-triggers '(after-save-hook)
   "Hooks that trigger mindstream session iteration.
 
-This replaces the older behavior of advising functions. If a symbol
+This replaces the older behavior of advising functions.  If a symbol
 in this list does not end in `-hook' or `-functions', Mindstream will
 assume it is a function from an older configuration, advise it for
 backward compatibility, and issue a deprecation warning."

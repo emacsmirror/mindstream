@@ -37,7 +37,7 @@
 (defun mindstream--unique-name (&optional truncate-to)
   "Generate a unique name.
 
-This is a SHA1 hash. Truncate the length to TRUNCATE-TO, if provided."
+This is a SHA1 hash.  Truncate the length to TRUNCATE-TO, if provided."
   (let ((name (sha1
                (format "%s" (current-time)))))
     (if truncate-to

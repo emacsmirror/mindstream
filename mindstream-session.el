@@ -41,20 +41,6 @@
 
 (defvar mindstream-session-file-history nil)
 
-(defvar mindstream-session-history nil)
-
-(defun mindstream--session-file-name-relative (file dir)
-  "Return relative FILE name for `mindstream-session-history'.
-
-This returns the path of FILE relative to DIR if FILE is in DIR,
-otherwise it returns an abbreviated path (e.g. starting with ~
-if it is in the home folder)."
-  (if (string-match-p
-       (expand-file-name dir)
-       (expand-file-name file))
-      (file-relative-name file dir)
-    (abbreviate-file-name file)))
-
 (defun mindstream--starting-file-for-session (dir)
   "Select an appropriate starting file for a session.
 

@@ -36,10 +36,24 @@
 
 (require 'mindstream-backend)
 
+(defvar mindstream-session-history nil)
+
 (defun mindstream-stream-p (&optional buffer)
   "Predicate to check whether BUFFER is in an active stream."
   (string-prefix-p mindstream-branch-prefix
                    (mindstream-git-branch-name buffer)))
+
+(defun mindstream--session-file-name-relative (file dir)
+  "Return relative FILE name for `mindstream-session-history'.
+
+This returns the path of FILE relative to DIR if FILE is in DIR,
+otherwise it returns an abbreviated path (e.g. starting with ~
+if it is in the home folder)."
+  (if (string-match-p
+       (expand-file-name dir)
+       (expand-file-name file))
+      (file-relative-name file dir)
+    (abbreviate-file-name file)))
 
 (defun mindstream--start-stream-helper ()
   "Do any necessary bookkeeping after starting a stream.
@@ -61,11 +75,11 @@ For instance, add the session to completion history."
   "Start a new stream in the current repo.
 
 A stream is an ordinary git branch with moment-to-moment commit
-semantics. Any branch whose name starts with
+semantics.  Any branch whose name starts with
 `mindstream-branch-prefix' will be versioned this way."
   (interactive)
   (if (mindstream-stream-p)
-      (when (y-or-n-p "Already in a mindstream session. Want to start a new one here?")
+      (when (y-or-n-p "Already in a mindstream session.  Want to start a new one here?")
         (mindstream--start-stream))
     (mindstream--start-stream)))
 
