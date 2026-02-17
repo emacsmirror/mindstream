@@ -298,6 +298,12 @@ This package was conceived in @hyperlink["https://github.com/greghendershott/rac
 
 "Live mode" was inspired by coding demos given by @hyperlink["https://users.cs.utah.edu/~mflatt/"]{Matthew Flatt} using @hyperlink["https://docs.racket-lang.org/drracket/index.html"]{DrRacket}.
 
+Stephen De Gabrielle helped organize an early demo given to Racket community members.
+
+Noboru Ota developed much of the completion infrastructure used in Mindstream, and contributed to the evolution of the design enabling Mindstream to be used anywhere.
+
+Use dasoju on GitHub contributed to the core design, especially to enabling persistent anonymous sessions.
+
 @section{Non-Ownership}
 
 This work is not owned by anyone. Please see the @hyperlink["https://github.com/drym-org/foundation/blob/main/Declaration_of_Non_Ownership.md"]{Declaration of Non-Ownership}.
