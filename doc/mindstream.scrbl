@@ -179,6 +179,10 @@ By default, starting a new anonymous session for a template (via @function{minds
   (mindstream-unique nil)
 }
 
+@subsection{When Do Commits Happen?}
+
+The variable @variable{mindstream-triggers} is a list of @emph{hooks} that, when triggered, cause a Mindstream session to be committed to its Git repo. By default, this is just @code{after-save-hook}, so that commits happen every time any buffer in the session is saved. You can customize this variable to use any hook you like, or even more than one hook.
+
 @section{Design}
 
 Mindstream structures your workflow in sessions, which are version-controlled files. When you first start a session it begins as anonymous, meaning that it doesn't have a name. If the session develops into something worth keeping, you can save it to a preconfigured (or any) location on disk by giving the session a name. A session is stored as a version-controlled folder. With that in mind, here are some properties of the design:

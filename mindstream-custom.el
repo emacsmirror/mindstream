@@ -79,9 +79,14 @@
   :type 'string
   :group 'mindstream)
 
-(defcustom mindstream-triggers (list #'basic-save-buffer)
-  "Functions that, when called, should implicitly iterate the mindstream buffer."
-  :type '(repeat function)
+(defcustom mindstream-triggers '(after-save-hook)
+  "Hooks that trigger mindstream session iteration.
+
+This replaces the older behavior of advising functions. If a symbol
+in this list does not end in `-hook' or `-functions', Mindstream will
+assume it is a function from an older configuration, advise it for
+backward compatibility, and issue a deprecation warning."
+  :type '(repeat symbol)
   :group 'mindstream)
 
 (defcustom mindstream-live-delay 1.5

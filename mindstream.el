@@ -150,8 +150,8 @@ New sessions always start anonymous."
 (defun mindstream-initialize ()
   "Do any setup that's necessary for Mindstream.
 
-This advises any functions that should implicitly cause the session to
-iterate.  By default, this is just `basic-save-buffer', so that the
+This subscribes to any hooks that should implicitly cause the session to
+iterate.  By default, this is just `after-save-hook', so that the
 session is iterated every time the buffer is saved.  This is the
 recommended usage, intended to capture \"natural\" points at which the
 session is meaningful.
@@ -160,23 +160,31 @@ While it doesn't make sense to iterate the session if the buffer
 has *not* been saved (there would be no changes to record a fresh
 version for!), it's possible that you might want to iterate the
 session at a coarser granularity than every save. In that case, you
-can customize `mindstream-triggers' and add the function(s) that
-should trigger session iteration (and remove `basic-save-buffer')."
+can customize `mindstream-triggers' and add the hook(s) that
+should trigger session iteration (and remove `after-save-hook')."
   (mindstream--ensure-paths)
   (mindstream--ensure-templates-exist)
   (unless mindstream-persist
     ;; archive all sessions on startup
     (mindstream-archive-all))
-  (dolist (fn mindstream-triggers)
-    (advice-add fn :after #'mindstream-implicitly-iterate-advice)))
+  (dolist (trigger mindstream-triggers)
+    (if (mindstream--is-hook-p trigger)
+        (add-hook trigger #'mindstream-implicitly-iterate)
+      ;; Backward compatibility for legacy advice-based configs
+      (display-warning 'mindstream
+                       (format "Advising `%s' is deprecated. Please update `mindstream-triggers' to use hooks (e.g., `after-save-hook')." trigger)
+                       :warning)
+      (advice-add trigger :after #'mindstream-implicitly-iterate))))
 
 (defun mindstream-disable ()
   "Cleanup actions on exiting `mindstream-mode'.
 
-This removes any advice (e.g. on `basic-save-buffer') that was added
-for session iteration."
-  (dolist (fn mindstream-triggers)
-    (advice-remove fn #'mindstream-implicitly-iterate-advice)))
+This unsubscribes from any hooks (e.g. `after-save-hook') for session
+iteration. It also removes advice (deprecated), if present."
+  (dolist (trigger mindstream-triggers)
+    (if (mindstream--is-hook-p trigger)
+        (remove-hook trigger #'mindstream-implicitly-iterate)
+      (advice-remove trigger #'mindstream-implicitly-iterate))))
 
 (defun mindstream--call-live-action ()
   "Call configured live action for major mode."
@@ -230,13 +238,26 @@ before invoking it is customized via `mindstream-live-delay'."
                #'mindstream--reset-live-timer
                t))
 
-(defun mindstream-implicitly-iterate-advice (&rest _)
-  "Implicitly iterate the session upon execution of some command.
+(defun mindstream--is-hook-p (sym)
+  "Check if SYM follows the Emacs convention for hook variables."
+  (string-match-p "-\\(hook\\|functions\\)\\'" (symbol-name sym)))
 
-This only iterates the session if there have been changes since
-the last persistent state.  Otherwise, it takes no action."
+(defun mindstream-implicitly-iterate (&rest _)
+  "Implicitly iterate the session upon execution of a trigger.
+
+Note that the versioning backend, Git, will *not* ordinarily record a
+fresh commit if there are no differences from the previous version, so
+there is typically no risk of empty commits from calling this function
+redundantly.
+
+This accepts `&rest _` so it can be used interchangeably as a standard
+hook (0 args), an abnormal hook, or an advice function (though this
+last is deprecated)."
   (when (mindstream-stream-p)
     (mindstream--iterate)))
+
+(define-obsolete-function-alias 'mindstream-implicitly-iterate-advice
+  'mindstream-implicitly-iterate "2.0")
 
 (defun mindstream-save-session (dest-dir)
   "Save the current session to a permanent location.
