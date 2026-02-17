@@ -15,13 +15,9 @@ If you've ever created throwaway files named @code{1.txt} or @code{blah.py} or @
 
 Regardless of what you're trying to do, it begins with writing. Writing text, writing code, writing thoughts. Writing isn't just a way to express yourself, but a way to think.
 
-Mindstream removes the barriers so that you can start writing immediately, and so that you can feel secure enough to play with the things you write, knowing that you won't ever lose anything you care about, and at the same time, never have to think again about the things that have served their purpose in the moment.
+Mindstream removes the barriers so that you can start writing immediately (by entering self-contained, Git-backed, anonymous writing sessions starting from @seclink["Adding_New_Session_Templates"]{templates} you define), and so that you can feel secure enough to play with the things you write (by providing moment-to-moment versioning, recording a commit every time you save the buffer), knowing that you won't ever lose anything you care about (you can @seclink["Saving_Sessions"]{save these sessions}, which are ordinary Git repos), and at the same time, never have to think again about the things that have served their purpose in the moment (@seclink["Archiving_Sessions"]{archiving sessions} that you no longer need, which files them away using an intuitive filing scheme).
 
-Mindstream is a lightweight tool that leaves most of the heavy lifting to other packages (including major modes) and technologies (such as Git). It simply uses these together to augment your existing workflows to fill an unmet need.
-
-Every mindstream session begins from a template (an ordinary folder) that you provide, and evolves through the stages of your creative process. The session itself is stored as an ordinary folder in a unique Git repository at a temporary location on disk. This repository is versioned by commits representing your writing process bounded at natural points -- by default, the points at which your buffer is saved (whether explicitly by you or implicitly on running a command like @hyperlink["https://racket-mode.com/#racket_002drun"]{@function{racket-run}}). In this way, Mindstream saves you the trouble of coming up with extraneous names (e.g. @code{draft1.tex}, @code{draft2.tex}, ..., @code{draft_final2.tex}, ...) and allows you to focus on the task at hand. You can save and load these sessions, too, and pick up right where you left off, allowing quick freewriting sessions to organically grow into robust creative works.
-
-Typical uses of this package are for early stages of prototyping in a software project, or for exploratory programming to understand a new idea, tool, or technology. It's also great for just taking quick notes or freewriting blog posts or content in authoring settings in general.
+Getting started with Mindstream is easy. The first few sections on @secref["Installation"] and @secref["Usage"] walk you through it. @secref["Customization"] and @secref["Tips"] describe ways to get the most out of Mindstream and tailor it to your needs. @secref["What_Would_I_Use_Mindstream_For_"] provides some example applications, and @secref["Overview_of_Operation"] describes the inner workings at a high level.
 
 @table-of-contents[]
 
@@ -52,6 +48,8 @@ You may notice that there is only one template available to use for your first s
 
 @subsection{Adding New Session Templates}
 
+A template is just an ordinary folder that you create at @variable{mindstream-template-path}, containing ordinary files. When starting a new session, Mindstream will prompt you to choose one of these templates, which will simply be copied over verbatim in creating the new session.
+
 Mindstream doesn't include any templates out of the box, so you'll probably want to create some for standard sessions you are likely to need, for instance, for programming in your favorite language (perhaps @hyperlink["https://racket-lang.org/"]{Racket}?), or just freewriting some text for your next great novel, following in the keystrokes of Emacs octopuses like Neal Stephenson.
 
 To add a new template, visit @variable{mindstream-template-path} (default: @code{"~/.emacs.d/mindstream/templates/"}) in your file manager of choice (e.g. Emacs's @code{dired}, or just a command line), and create a folder there with the name of your template (e.g. @code{racket}). The folder should contain an ordinary file (or multiple files) with the appropriate extension (e.g. @code{.rkt} -- it could be anything at all that you typically use Emacs to edit). This template will now be available as an option in @function{mindstream-new}.
@@ -74,7 +72,7 @@ If you've got more than one template for a particular major mode, you may want t
 
 This customization is only relevant when using @function{mindstream-enter-anonymous-session}, as you would select the template yourself when using @function{mindstream-new}.
 
-See @secref["Design"] to learn more about anonymous sessions.
+See @secref["Overview_of_Operation"] to learn more about anonymous sessions.
 
 @subsection{Archiving Sessions}
 
@@ -144,6 +142,26 @@ Try @keybinding{M-x mindstream- ...} to see all the available interactive comman
 
 Mindstream commands are bound by default under the prefix @keybinding{C-c , ...}. You can view all Mindstream commands by using Emacs's @keybinding{C-h} introspection with this prefix, as in @keybinding{C-c , C-h}.
 
+@section{What Would I Use Mindstream For?}
+
+Mindstream is useful in authoring settings in general. Typical uses of this package include the following.
+
+For writing, generally:
+
+@itemlist[
+  @item{Freewriting essays and blog posts.}
+  @item{Drafting emails and other communications.}
+  @item{Big creative projects like academic papers or writing a book.}
+]
+
+For programming:
+
+@itemlist[
+  @item{Early stages of prototyping in a software project.}
+  @item{Exploratory programming to understand a new idea, tool, or technology.}
+  @item{Experimenting with a new approach in an existing project.}
+]
+
 @section{Customization}
 
 As each Mindstream session uses a specific major mode, it inherits all of the customizations you already have (and any that you decide to add) for that mode. There is typically nothing special you need to do beyond this for Mindstream to work seamlessly with all of your workflows when using these modes.
@@ -182,19 +200,6 @@ By default, starting a new anonymous session for a template (via @function{minds
 @subsection{When Do Commits Happen?}
 
 The variable @variable{mindstream-triggers} is a list of @emph{hooks} that, when triggered, cause a Mindstream session to be committed to its Git repo. By default, this is just @code{after-save-hook}, so that commits happen every time any buffer in the session is saved. You can customize this variable to use any hook you like, or even more than one hook.
-
-@section{Design}
-
-Mindstream structures your workflow in sessions, which are version-controlled files. When you first start a session it begins as anonymous, meaning that it doesn't have a name. If the session develops into something worth keeping, you can save it to a preconfigured (or any) location on disk by giving the session a name. A session is stored as a version-controlled folder. With that in mind, here are some properties of the design:
-
-@itemlist[#:style 'ordered
-  @item{Depending on @variable{mindstream-unique}, there may be only one anonymous session active at any time per template, or there may be more than one.}
-  @item{Saving an anonymous session turns it into a named session. Named sessions work the same as anonymous sessions aside from having a name and being in a permanent location on disk. A new anonymous session could be started at any time via @function{mindstream-new}.}
-  @item{New sessions always begin anonymous.}
-  @item{Anonymous sessions may persist across Emacs restarts, depending on @variable{mindstream-persist}.}
-  @item{Named sessions may be loaded without interfering with any active anonymous sessions.}
-  @item{Any number of named sessions could be active at the same time. Sessions are self-contained and independent.}
-]
 
 @section{Tips}
 
@@ -267,6 +272,25 @@ Remember that the path we are configuring here is for @emph{anonymous sessions} 
 Anonymous sessions, and consequently archived sessions, are filed under their creation date under the template used to create them, in a folder structure reflecting this scheme. For sessions saved by you to another location, by default, these are saved to @variable{mindstream-save-session-path}, filed just under the template used to create them (and not by creation date).
 
 This is a uniform and useful filing scheme. Even so, over time, you may want to rename some of your saved sessions at @variable{mindstream-save-session-path}, or move them to a new location, or reorganize them in some other way. What special features does Mindstream provide for this? @emph{None}! Remember, Mindstream sessions are just @emph{ordinary folders} containing @emph{ordinary Git repositories}. You can use normal Emacs or shell tools to rename, delete, organize them as you see fit, and you would still be able to load them in Mindstream as usual (once you navigate to what may be their new locations).
+
+@section{Overview of Operation}
+
+Mindstream is a lightweight tool that structures your workflow in sessions, which are version-controlled folders. New sessions are always anonymous, and they may subsequently be either @emph{saved} or @emph{archived}. Mindstream leaves most of the heavy lifting to standard packages (including major modes) and technologies (such as Git). It simply uses these together to augment your existing workflows to fill an unmet need.
+
+Every mindstream session begins from a template (an ordinary folder) that you provide, and evolves through the stages of your creative process. The session itself is stored as an ordinary folder in a unique Git repository at a temporary location on disk. This repository is versioned by commits representing your writing process bounded at natural points -- by default, the points at which your buffer is saved (whether explicitly by you or implicitly on running a command like @hyperlink["https://racket-mode.com/#racket_002drun"]{@function{racket-run}}). In this way, Mindstream saves you the trouble of coming up with extraneous names (e.g. @code{draft1.tex}, @code{draft2.tex}, ..., @code{draft_final2.tex}, ...) and allows you to focus on the task at hand. You can save and load these sessions, too, and pick up right where you left off, allowing quick freewriting sessions to organically grow into robust creative works.
+
+The lifecycle of a Mindstream session is described below.
+
+@itemlist[#:style 'ordered
+  @item{A new session may be started at any time via @function{mindstream-new}. When you first start a session, it is always anonymous, meaning that it doesn't have a name. Each session is self-contained and independent.}
+  @item{If the session develops into something worth keeping, you can save it to a preconfigured (or any) location on disk by giving the session a name. The session folder is simply moved there with the name you give it. See @secref["Saving_Sessions"].}
+  @item{Anonymous sessions may persist across Emacs restarts, depending on @variable{mindstream-persist}. See @secref["Persistent_Sessions"].}
+  @item{Depending on @variable{mindstream-unique}, there may be only one anonymous session active at any time per template, or there may be more than one. See @secref["Multiple_Concurrent_Anonymous_Sessions"].}
+  @item{Named sessions may be loaded without interfering with any other sessions, including active anonymous sessions.}
+  @item{Anonymous sessions that have served their purpose may be @emph{archived}, which moves them to the configured archive path (filed by template and date) without naming them. If you have configured a unique anonymous session per template, then starting a new session archives the previous one. See @secref["Archiving_Sessions"].}
+]
+
+You can also start a @emph{stream} in an existing Git repository, which starts a new branch versioned by Mindstream, as described in @secref["Mindstream_Anywhere"].
 
 @section{Acknowledgements}
 
