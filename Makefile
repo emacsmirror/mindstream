@@ -30,6 +30,8 @@ help:
 	@echo "build-pdf-docs - view documentation in a browser"
 	@echo "docs - view documentation in a browser"
 	@echo "check-docs-deps - view documentation in a browser"
+	@echo "build-design - Build self-contained documentation for the new design that could be hosted somewhere"
+	@echo "design - view the new design document in a browser"
 	@echo
 	@echo "**All of these actions (aside from docs) take effect and are contained inside the elci/ folder --- they do not affect the system Emacs configuration.**"
 
@@ -75,10 +77,16 @@ build-docs:
 build-pdf-docs:
 	scribble --pdf --prefix $(DOCS-PATH)/pdf-style-prefix.tex --dest $(DOCS-PATH)/output $(DOCS-PATH)/mindstream.scrbl
 
+build-design:
+	scribble ++style $(DOCS-PATH)/assets/css/$(PACKAGE-NAME).css --html --dest $(DOCS-PATH)/design-output --dest-name index $(DOCS-PATH)/design.scrbl
+
 docs: build-docs
 	open $(DOCS-PATH)/output/index.html
+
+design: build-design
+	open $(DOCS-PATH)/design-output/index.html
 
 check-docs-deps:
 	raco setup --no-docs $(DEPS-FLAGS) --pkgs $(PACKAGE-NAME)
 
-.PHONY: help setup-ci clean bootstrap install byte-compile native-compile lint checkdoc install-docs remove-docs build-docs build-pdf-docs docs check-docs-deps
+.PHONY: help setup-ci clean bootstrap install byte-compile native-compile lint checkdoc install-docs remove-docs build-docs build-pdf-docs docs check-docs-deps build-design design

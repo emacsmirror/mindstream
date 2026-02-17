@@ -79,9 +79,14 @@
   :type 'string
   :group 'mindstream)
 
-(defcustom mindstream-triggers (list #'basic-save-buffer)
-  "Functions that, when called, should implicitly iterate the mindstream buffer."
-  :type '(repeat function)
+(defcustom mindstream-triggers '(after-save-hook)
+  "Hooks that trigger mindstream session iteration.
+
+This replaces the older behavior of advising functions. If a symbol
+in this list does not end in `-hook' or `-functions', Mindstream will
+assume it is a function from an older configuration, advise it for
+backward compatibility, and issue a deprecation warning."
+  :type '(repeat symbol)
   :group 'mindstream)
 
 (defcustom mindstream-live-delay 1.5
@@ -113,6 +118,11 @@ for the major mode so that it would be selected."
   :type 'string
   :group 'mindstream)
 
+(defcustom mindstream-branch-prefix "mindstream"
+  "The prefix to use in the name of a mindstream branch."
+  :type 'string
+  :group 'mindstream)
+
 (defcustom mindstream-persist nil
   "Whether anonymous sessions should persist across Emacs restarts until archived."
   :type 'boolean
@@ -140,7 +150,7 @@ template contents."
   :type 'string
   :group 'mindstream)
 
-(defcustom mindstream-default-template-contents "The past is a memory, the future a dream. Now, we write.\n"
+(defcustom mindstream-default-template-contents "The past is a memory, the future a dream. Now, write!\n"
   "Contents of the default template that is created if none exist."
   :type 'string
   :group 'mindstream)

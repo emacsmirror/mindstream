@@ -6,9 +6,12 @@
 .cask
 *.elc
 *.html
+*.css
+*.js
 dist
 .elci
 
 # Docs compiled files and output
 doc/compiled
 doc/output
+doc/design-output

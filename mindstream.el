@@ -2,7 +2,7 @@
 
 ;; Author: Siddhartha Kasivajhula <sid@countvajhula.com>
 ;; URL: https://github.com/countvajhula/mindstream
-;; Version: 1.0
+;; Version: 2.0
 ;; Package-Requires: ((emacs "26.1") (magit "3.3.0"))
 ;; Keywords: convenience, files, languages, outlines, tools, vc, wp
 
@@ -42,6 +42,7 @@
 (require 'dired)
 
 (require 'mindstream-custom)
+(require 'mindstream-stream)
 (require 'mindstream-session)
 (require 'mindstream-backend)
 (require 'mindstream-util)
@@ -66,8 +67,7 @@ can be retrieved and canceled when you leave live mode.")
     (define-key mindstream-map (kbd "C-c , n") #'mindstream-new)
     (define-key mindstream-map (kbd "C-c , b") #'mindstream-enter-anonymous-session)
     (define-key mindstream-map (kbd "C-c , t") #'mindstream-enter-session-for-template)
-    (define-key mindstream-map (kbd "C-c , m") #'mindstream-begin-session)
-    (define-key mindstream-map (kbd "C-c , q") #'mindstream-end-session)
+    (define-key mindstream-map (kbd "C-c , m") #'mindstream-start-stream)
     (define-key mindstream-map (kbd "C-c , s") #'mindstream-save-session)
     (define-key mindstream-map (kbd "C-c , C-s") #'mindstream-save-session)
     (define-key mindstream-map (kbd "C-c , r") #'mindstream-load-session)
@@ -103,17 +103,6 @@ For example:
     (completing-read "Which template? " templates nil t nil
                      'mindstream-template-history)))
 
-(defun mindstream--new (template)
-  "Start a new anonymous session using a specific TEMPLATE.
-
-This also begins a new session."
-  ;; start a new session (sessions always start anonymous)
-  (let ((buf (mindstream-start-anonymous-session template)))
-    ;; (ab initio) iterate
-    (with-current-buffer buf
-      (mindstream--iterate))
-    buf))
-
 (defun mindstream-new (&optional template)
   "Start a new anonymous session.
 
@@ -130,10 +119,11 @@ name, in a dedicated Git version-controlled folder at
   (interactive)
   (let ((template (or template
                       (mindstream--completing-read-template))))
-    (switch-to-buffer (mindstream--new template))))
+    ;; start a new session (sessions always start anonymous)
+    (switch-to-buffer (mindstream-start-anonymous-session template))))
 
 (defun mindstream-start-anonymous-session (&optional template)
-  "Start a new anonymous session.
+  "Start a new anonymous session using a specific TEMPLATE.
 
 This creates a new directory and Git repository for the new session
 after copying over the contents of TEMPLATE if one is specified.
@@ -152,14 +142,16 @@ New sessions always start anonymous."
        (expand-file-name filename
                          path))
       (mindstream--initialize-buffer)
+      ;; (ab initio) iterate
+      (mindstream--iterate)
       (mindstream-begin-session)
       (current-buffer))))
 
 (defun mindstream-initialize ()
   "Do any setup that's necessary for Mindstream.
 
-This advises any functions that should implicitly cause the session to
-iterate.  By default, this is just `basic-save-buffer', so that the
+This subscribes to any hooks that should implicitly cause the session to
+iterate.  By default, this is just `after-save-hook', so that the
 session is iterated every time the buffer is saved.  This is the
 recommended usage, intended to capture \"natural\" points at which the
 session is meaningful.
@@ -168,27 +160,35 @@ While it doesn't make sense to iterate the session if the buffer
 has *not* been saved (there would be no changes to record a fresh
 version for!), it's possible that you might want to iterate the
 session at a coarser granularity than every save. In that case, you
-can customize `mindstream-triggers' and add the function(s) that
-should trigger session iteration (and remove `basic-save-buffer')."
+can customize `mindstream-triggers' and add the hook(s) that
+should trigger session iteration (and remove `after-save-hook')."
   (mindstream--ensure-paths)
   (mindstream--ensure-templates-exist)
   (unless mindstream-persist
     ;; archive all sessions on startup
     (mindstream-archive-all))
-  (dolist (fn mindstream-triggers)
-    (advice-add fn :after #'mindstream-implicitly-iterate-advice)))
+  (dolist (trigger mindstream-triggers)
+    (if (mindstream--is-hook-p trigger)
+        (add-hook trigger #'mindstream-implicitly-iterate)
+      ;; Backward compatibility for legacy advice-based configs
+      (display-warning 'mindstream
+                       (format "Advising `%s' is deprecated. Please update `mindstream-triggers' to use hooks (e.g., `after-save-hook')." trigger)
+                       :warning)
+      (advice-add trigger :after #'mindstream-implicitly-iterate))))
 
 (defun mindstream-disable ()
   "Cleanup actions on exiting `mindstream-mode'.
 
-This removes any advice (e.g. on `basic-save-buffer') that was added
-for session iteration."
-  (dolist (fn mindstream-triggers)
-    (advice-remove fn #'mindstream-implicitly-iterate-advice)))
+This unsubscribes from any hooks (e.g. `after-save-hook') for session
+iteration. It also removes advice (deprecated), if present."
+  (dolist (trigger mindstream-triggers)
+    (if (mindstream--is-hook-p trigger)
+        (remove-hook trigger #'mindstream-implicitly-iterate)
+      (advice-remove trigger #'mindstream-implicitly-iterate))))
 
 (defun mindstream--call-live-action ()
   "Call configured live action for major mode."
-  (when (and (mindstream-session-p)
+  (when (and (mindstream-stream-p)
              (boundp 'mindstream-live-timer)
              mindstream-live-timer)
     (let ((action (plist-get mindstream-live-action
@@ -212,7 +212,7 @@ for session iteration."
 
 (defun mindstream--reset-live-timer (_beg _end _len)
   "Reset the live timer."
-  (when (mindstream-session-p)
+  (when (mindstream-stream-p)
     (mindstream--cancel-live-timer)
     (mindstream--start-live-timer)))
 
@@ -238,13 +238,26 @@ before invoking it is customized via `mindstream-live-delay'."
                #'mindstream--reset-live-timer
                t))
 
-(defun mindstream-implicitly-iterate-advice (&rest _)
-  "Implicitly iterate the session upon execution of some command.
+(defun mindstream--is-hook-p (sym)
+  "Check if SYM follows the Emacs convention for hook variables."
+  (string-match-p "-\\(hook\\|functions\\)\\'" (symbol-name sym)))
 
-This only iterates the session if there have been changes since
-the last persistent state.  Otherwise, it takes no action."
-  (when (mindstream-session-p)
+(defun mindstream-implicitly-iterate (&rest _)
+  "Implicitly iterate the session upon execution of a trigger.
+
+Note that the versioning backend, Git, will *not* ordinarily record a
+fresh commit if there are no differences from the previous version, so
+there is typically no risk of empty commits from calling this function
+redundantly.
+
+This accepts `&rest _` so it can be used interchangeably as a standard
+hook (0 args), an abnormal hook, or an advice function (though this
+last is deprecated)."
+  (when (mindstream-stream-p)
     (mindstream--iterate)))
+
+(define-obsolete-function-alias 'mindstream-implicitly-iterate-advice
+  'mindstream-implicitly-iterate "2.0")
 
 (defun mindstream-save-session (dest-dir)
   "Save the current session to a permanent location.
@@ -287,13 +300,7 @@ to select the existing destination path."
         (file-to-open (file-name-nondirectory
                        (buffer-file-name))))
     ;; TODO: verify behavior with existing vs non-existent containing folder
-    (mindstream--move-dir source-dir dest-dir)
-    ;; TODO: this is a no-op, and it currently leaves the
-    ;; session in `mindsteam-active-sessions'. But that's OK
-    ;; for now as it doesn't affect anything, and this "state"
-    ;; will be removed eventually anyway in the design refactor
-    ;; (mindstream--end-anonymous-session)
-    (mindstream-load-session dest-dir file-to-open)))
+    (mindstream--move-dir source-dir dest-dir)))
 
 (defun mindstream-load-session (dir &optional file)
   "Load a previously saved session.
@@ -307,7 +314,12 @@ the file to be opened."
   (let ((file (or file
                   (mindstream--starting-file-for-session dir))))
     (find-file (expand-file-name file dir))
-    (mindstream-begin-session)))
+    (if (mindstream-stream-p)
+        ;; if already in a stream (i.e., currently on a mindstream
+        ;; branch), we don't need to do anything, but we do still call
+        ;; the "helper" here to add the session to completion history
+        (mindstream--start-stream-helper)
+      (mindstream--start-stream))))
 
 (defun mindstream--completing-read-session ()
   "Return session-file via completion for template."
@@ -379,7 +391,7 @@ worrying about how that happens. It is too connoted to be useful in
 features implementing the session iteration model."
   (or (mindstream--visit-anonymous-session template)
       (mindstream-open template)
-      (mindstream--new template)))
+      (mindstream-start-anonymous-session template)))
 
 (defun mindstream-enter-session-for-template (template)
   "Enter an anonymous session buffer for TEMPLATE.
@@ -403,18 +415,18 @@ present, otherwise, it creates a new one and enters it."
     major-mode)))
 
 (defun mindstream--list-anonymous-sessions ()
-  "List anonymous session paths."
+  "List anonymous session paths, ordered by recency of buffer use."
   (let ((sessions nil))
     (mindstream--for-all-buffers
      (lambda ()
        (when (mindstream-anonymous-session-p)
          (push (mindstream--session-dir (current-buffer))
                sessions))))
-    (let ((sessions (sort (seq-uniq sessions)
-                          #'mindstream--files-sort-by-modified-time)))
-      (when (mindstream-session-p)
-        ;; ensure the session in the current buffer
-        ;; is at the top of the completion menu
+    ;; `buffer-list` is already sorted most-recently-used first.
+    ;; `push` reverses this, so `nreverse` restores the true MRU order.
+    ;; `seq-uniq` keeps the first occurrence, maintaining recency priority.
+    (let ((sessions (seq-uniq (nreverse sessions))))
+      (when (mindstream-stream-p)
         (let ((this-session (mindstream--session-dir)))
           (setq sessions
                 (cons this-session
@@ -442,18 +454,24 @@ present, otherwise, it creates a new one and enters it."
     (when (mindstream--directory-empty-p anon-date-dir)
       (delete-directory anon-date-dir))))
 
-;; TODO: archive should be ordered by recency, so that the current session is highlighted.
 (defun mindstream-archive (session)
   "Move the selected SESSION to `mindstream-archive-path'.
 
 The session is expected to be anonymous - it does not make sense to
 archive saved sessions."
-  (interactive (list (completing-read "Which session? "
-                                      (mindstream--list-anonymous-sessions)
-                                      nil
-                                      t
-                                      nil
-                                      'mindstream-session-history)))
+  (interactive
+   (let* ((sessions (mindstream--list-anonymous-sessions))
+          ;; Grab the first item (current or most recent) to use as default
+          (default (car sessions)))
+     (list (completing-read (if default
+                                (format "Which session? (default %s): " default)
+                              "Which session? ")
+                            sessions
+                            nil
+                            t
+                            nil
+                            'mindstream-session-history
+                            default))))
   (let ((template (mindstream--template-used session)))
     (mindstream--archive session
                          template)))
