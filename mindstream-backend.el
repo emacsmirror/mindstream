@@ -35,8 +35,6 @@
 ;;; Code:
 
 (require 'mindstream-custom)
-(require 'magit-git)
-(require 'magit-branch)
 
 ;; collisions unlikely within a single project repo
 ;; and we don't want branch names to be too long as they
@@ -58,6 +56,22 @@ and arguments that are to be supplied to the command."
                                default-directory)))
     (let ((exit-code (apply #'call-process cmd nil nil nil args)))
       exit-code)))
+
+(defun mindstream--execute-shell-command-to-string (command &optional directory)
+  "Execute COMMAND at DIRECTORY and return its stdout as a trimmed string.
+Returns nil if the command exits with a non-zero status."
+  (let ((cmd (car command))
+        (args (cdr command))
+        (default-directory (or directory
+                               (and (buffer-file-name)
+                                    (file-name-directory
+                                     (buffer-file-name)))
+                               default-directory)))
+    (with-temp-buffer
+      ;; 't' tells call-process to insert stdout into this temp buffer
+      (let ((exit-code (apply #'call-process cmd nil t nil args)))
+        (when (eq exit-code 0)
+          (string-trim (buffer-string)))))))
 
 (defun mindstream-backend-initialize (base-path)
   "Initialize the backend at the path BASE-PATH."
@@ -82,27 +96,21 @@ and arguments that are to be supplied to the command."
 
 (defun mindstream-backend-root (&optional buffer)
   "Get the root folder of the VCS for BUFFER."
-  (let ((buffer (or buffer (current-buffer))))
-    (with-current-buffer buffer
-      ;; (vc-root-dir) returns nil in some cases,
-      ;; e.g. for an anonymous text session,
-      ;; but magit-toplevel seems to work.
-      ;; TODO: support returning the output of
-      ;; the shell command in `mindstream--execute-shell-command'
-      ;; to implement this using git directly.
-      (magit-toplevel))))
+  (with-current-buffer (or buffer (current-buffer))
+    (mindstream--execute-shell-command-to-string
+     (list "git" "rev-parse" "--show-toplevel"))))
 
 (defun mindstream-git-branch-name (&optional buffer)
   "Get the Git branch name for BUFFER."
-  (let ((buffer (or buffer (current-buffer))))
-    (with-current-buffer buffer
-      (magit-get-current-branch))))
+  (with-current-buffer (or buffer (current-buffer))
+    (mindstream--execute-shell-command-to-string
+     (list "git" "branch" "--show-current"))))
 
 (defun mindstream--current-version (&optional buffer)
   "Get the Git version hash for BUFFER."
-  (let ((buffer (or buffer (current-buffer))))
-    (with-current-buffer buffer
-      (magit-rev-parse "HEAD"))))
+  (with-current-buffer (or buffer (current-buffer))
+    (mindstream--execute-shell-command-to-string
+     (list "git" "rev-parse" "HEAD"))))
 
 (defun mindstream-create-git-branch (&optional name)
   "Start a new branch (stream) in the current repo.
