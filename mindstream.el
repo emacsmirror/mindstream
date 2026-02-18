@@ -3,7 +3,7 @@
 ;; Author: Siddhartha Kasivajhula <sid@countvajhula.com>
 ;; URL: https://github.com/countvajhula/mindstream
 ;; Version: 2.0
-;; Package-Requires: ((emacs "26.1") (magit "3.3.0"))
+;; Package-Requires: ((emacs "28.1") (magit "3.3.0"))
 ;; Keywords: convenience, files, languages, outlines, tools, vc, wp
 
 ;; This work is "part of the world." You are free to do whatever you
